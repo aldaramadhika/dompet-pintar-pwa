@@ -14,6 +14,7 @@
   <!-- ================= HALAMAN 1: HOME & INPUT TRANSAKSI ================= -->
   <div id="pageHome" class="max-w-md mx-auto px-4 pt-4 space-y-4">
     
+    <!-- GRAPHIC CARD -->
     <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col items-center relative">
       <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Porsi Pengeluaran Bulan Ini</h2>
       <div class="relative w-full h-36 flex justify-center items-center">
@@ -22,15 +23,16 @@
       </div>
     </div>
 
+    <!-- PANEL ALERTS ANGGARAN -->
+    <div id="budgetAlertContainer" class="hidden space-y-2"></div>
+
     <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
-      <!-- Penanda Mode Edit -->
       <div id="editBadge" class="hidden bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold p-2.5 rounded-xl flex justify-between items-center">
         <span>✏️ Anda sedang mengedit transaksi lama</span>
         <button type="button" onclick="cancelEdit()" class="text-rose-500 hover:underline">Batal Edit</button>
       </div>
 
       <form id="txForm" class="space-y-3.5">
-        
         <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
           <button type="button" id="btnOut" class="py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white shadow-sm">Pengeluaran</button>
           <button type="button" id="btnIn" class="py-2 text-xs font-bold rounded-lg text-slate-500">Pemasukan</button>
@@ -67,11 +69,27 @@
           <textarea id="catatan" rows="2" placeholder="Tulis detail catatan tambahan..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></textarea>
         </div>
 
-        <!-- FITUR INPUT FOTO SMART (Memicu Kamera Langsung & Akses Galeri) -->
-        <div class="bg-indigo-50/50 p-3.5 rounded-2xl border border-dashed border-indigo-300">
-          <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">📸 Lampiran Foto Struk / Bon</label>
-          <input type="file" id="fotoBon" accept="image/*" capture="environment" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
-          <p class="text-[9px] text-slate-400 mt-1">Klik untuk jepret langsung via kamera atau tahan untuk pilih dari galeri.</p>
+        <!-- PERBAIKAN DUA TOMBOL MANDIRI AWAS BENTROK -->
+        <div class="bg-indigo-50/50 p-3.5 rounded-2xl border border-dashed border-indigo-300 space-y-2.5">
+          <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider">📸 Lampiran Struk / Bon Belanja</label>
+          
+          <div class="grid grid-cols-2 gap-2">
+            <!-- Tombol Kamera Menggunakan 'capture' -->
+            <label class="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 cursor-pointer text-center shadow-sm">
+              📷 Jepret Kamera
+              <input type="file" id="fotoKamera" accept="image/*" capture="environment" class="hidden" onchange="processAndCompressFile(this)">
+            </label>
+            
+            <!-- Tombol Galeri BERSIH TANPA ATRIBUT CAPTURE AGAR TIDAK DIBAJAK SYSTEM -->
+            <label class="bg-slate-600 hover:bg-slate-700 text-white text-[11px] font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1 cursor-pointer text-center shadow-sm">
+              📂 Buka Galeri
+              <input type="file" id="fotoGaleri" accept="image/*" class="hidden" onchange="processAndCompressFile(this)">
+            </label>
+          </div>
+          
+          <div id="fileIndicator" class="hidden text-[10px] text-emerald-600 font-bold bg-emerald-50 p-2 rounded-lg">
+            <span id="indicatorText">✅ Foto bon siap diunggah!</span>
+          </div>
         </div>
 
         <button type="submit" id="btnSubmit" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-md text-xs hover:bg-indigo-700 active:scale-[0.99] transition-all">
@@ -123,6 +141,9 @@
     let wallets = [];
     let myChart = null;
     let currentEditRowNumber = null;
+    
+    let compressedImageBase64 = null;
+    let compressedImageName = null;
 
     function goToPage(pageId) {
       document.getElementById('pageHome').classList.add('hidden');
@@ -147,6 +168,40 @@
       }
     }
 
+    function processAndCompressFile(inputElement) {
+      if (inputElement.files && inputElement.files[0]) {
+        const file = inputElement.files[0];
+        compressedImageName = new Date().getTime() + "_" + file.name;
+        document.getElementById('fileIndicator').classList.remove('hidden');
+        document.getElementById('indicatorText').innerText = "⏳ Sedang mengompres gambar...";
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let width = img.width; let height = img.height;
+            const MAX_WIDTH = 800; const MAX_HEIGHT = 800;
+            if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } }
+            else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            compressedImageBase64 = dataUrl.split(',')[1];
+            document.getElementById('indicatorText').innerText = "✅ Foto bon siap diunggah!";
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function clearFileSelect() {
+      compressedImageBase64 = null; compressedImageName = null;
+      document.getElementById('fotoKamera').value = ""; document.getElementById('fotoGaleri').value = "";
+      document.getElementById('fileIndicator').classList.add('hidden');
+    }
+
     async function loadData() {
       try {
         const response = await fetch(API_URL);
@@ -164,9 +219,41 @@
         wallets.forEach(w => walletSelect.innerHTML += `<option value="${w}">${w}</option>`);
         
         renderChart(data.chartData);
+        renderBudgetAlerts(data.budgetAlerts);
         renderRecentTransactions();
         populateMonthFilter();
       } catch (error) { console.error("Gagal sinkronisasi data:", error); }
+    }
+
+    function renderBudgetAlerts(alerts) {
+      const container = document.getElementById('budgetAlertContainer');
+      container.innerHTML = "";
+      if (!alerts || alerts.length === 0) { container.classList.add('hidden'); return; }
+      container.classList.remove('hidden');
+      alerts.forEach(a => {
+        const isOver = a.persen >= 100;
+        const cardBg = isOver ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200';
+        const textTitleColor = isOver ? 'text-rose-800' : 'text-amber-800';
+        const textDescColor = isOver ? 'text-rose-600' : 'text-amber-600';
+        const barColor = isOver ? 'bg-rose-500' : 'bg-amber-500';
+        const formatSisa = a.sisa < 0 ? `-Rp ${Math.abs(a.sisa).toLocaleString('id-ID')}` : `Rp ${a.sisa.toLocaleString('id-ID')}`;
+        const labelStatus = isOver ? '🚨 Over Budget!' : '⚠️ Waspada Anggaran Menipis!';
+        
+        container.innerHTML += `
+          <div class="${cardBg} border p-3 rounded-2xl shadow-sm text-[11px] font-medium space-y-1.5 transition-all">
+            <div class="flex justify-between items-center font-bold ${textTitleColor}">
+              <span>${labelStatus} (${a.kategori})</span>
+              <span>${a.persen}%</span>
+            </div>
+            <div class="${textDescColor} font-semibold">
+              Sisa Anggaran: <span class="font-bold">${formatSisa}</span> 
+              <span class="text-[10px] text-slate-400 font-normal">(Limit: Rp ${a.limit.toLocaleString('id-ID')})</span>
+            </div>
+            <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden mt-1">
+              <div class="${barColor} h-full" style="width: ${Math.min(a.persen, 100)}%"></div>
+            </div>
+          </div>`;
+      });
     }
 
     function renderRecentTransactions() {
@@ -200,7 +287,6 @@
     function editTransaction(index) {
       const tx = allTransactions[index];
       currentEditRowNumber = tx.rowNumber;
-      
       setJenis(tx.jenis);
       document.getElementById('aktivitas').value = tx.aktivitas;
       document.getElementById('nominal').value = tx.nominal;
@@ -213,7 +299,6 @@
       const submitBtn = document.getElementById('btnSubmit');
       submitBtn.innerText = "Perbarui Transaksi (Timpa)";
       submitBtn.className = "w-full bg-amber-500 text-white font-bold py-3.5 rounded-xl shadow-md text-xs hover:bg-amber-600 active:scale-[0.99] transition-all";
-      
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -222,7 +307,7 @@
       document.getElementById('txForm').reset();
       document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
       document.getElementById('editBadge').classList.add('hidden');
-      
+      clearFileSelect();
       const submitBtn = document.getElementById('btnSubmit');
       submitBtn.innerText = "Simpan Transaksi + Foto";
       submitBtn.className = "w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-md text-xs hover:bg-indigo-700 active:scale-[0.99] transition-all";
@@ -291,27 +376,10 @@
         tanggal: document.getElementById('tanggal').value,
         catatan: document.getElementById('catatan').value,
         editRowNumber: currentEditRowNumber,
-        imageBlob: null,
-        imageName: null
+        imageBlob: compressedImageBase64,
+        imageName: compressedImageName
       };
       
-      const fileInput = document.getElementById('fotoBon');
-      if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        payload.imageName = new Date().getTime() + "_" + file.name;
-        
-        const reader = new FileReader();
-        reader.onloadend = async function() {
-          payload.imageBlob = reader.result.split(',')[1];
-          await sendData(payload, btn);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        await sendData(payload, btn);
-      }
-    });
-
-    async function sendData(payload, btn) {
       try {
         const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         const data = await res.json();
@@ -322,7 +390,7 @@
         }
       } catch (err) { alert("Gagal mengirim data."); }
       finally { btn.disabled = false; }
-    }
+    });
 
     function renderChart(chartData) {
       const ctx = document.getElementById('expenseChart').getContext('2d');
