@@ -23,6 +23,12 @@
     </div>
 
     <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
+      <!-- Penanda Mode Edit -->
+      <div id="editBadge" class="hidden bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold p-2.5 rounded-xl flex justify-between items-center">
+        <span>✏️ Anda sedang mengedit transaksi lama</span>
+        <button type="button" onclick="cancelEdit()" class="text-rose-500 hover:underline">Batal Edit</button>
+      </div>
+
       <form id="txForm" class="space-y-3.5">
         
         <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
@@ -61,10 +67,11 @@
           <textarea id="catatan" rows="2" placeholder="Tulis detail catatan tambahan..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></textarea>
         </div>
 
+        <!-- FITUR INPUT FOTO SMART (Memicu Kamera Langsung & Akses Galeri) -->
         <div class="bg-indigo-50/50 p-3.5 rounded-2xl border border-dashed border-indigo-300">
           <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">📸 Lampiran Foto Struk / Bon</label>
-          <input type="file" id="fotoBon" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
-          <p class="text-[9px] text-slate-400 mt-1">Foto otomatis tersimpan rapi & dikecilkan di tab 'Bukti'.</p>
+          <input type="file" id="fotoBon" accept="image/*" capture="environment" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
+          <p class="text-[9px] text-slate-400 mt-1">Klik untuk jepret langsung via kamera atau tahan untuk pilih dari galeri.</p>
         </div>
 
         <button type="submit" id="btnSubmit" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-md text-xs hover:bg-indigo-700 active:scale-[0.99] transition-all">
@@ -115,6 +122,7 @@
     let categories = [];
     let wallets = [];
     let myChart = null;
+    let currentEditRowNumber = null;
 
     function goToPage(pageId) {
       document.getElementById('pageHome').classList.add('hidden');
@@ -189,8 +197,10 @@
       });
     }
 
-    async function editTransaction(index) {
+    function editTransaction(index) {
       const tx = allTransactions[index];
+      currentEditRowNumber = tx.rowNumber;
+      
       setJenis(tx.jenis);
       document.getElementById('aktivitas').value = tx.aktivitas;
       document.getElementById('nominal').value = tx.nominal;
@@ -198,21 +208,37 @@
       document.getElementById('metode').value = tx.metode;
       document.getElementById('tanggal').value = tx.tanggal;
       document.getElementById('catatan').value = tx.catatan || "";
-      if (confirm("Data akan ditarik ke form untuk diperbaiki. Jalankan?")) { await executeDelete(tx.rowNumber); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      
+      document.getElementById('editBadge').classList.remove('hidden');
+      const submitBtn = document.getElementById('btnSubmit');
+      submitBtn.innerText = "Perbarui Transaksi (Timpa)";
+      submitBtn.className = "w-full bg-amber-500 text-white font-bold py-3.5 rounded-xl shadow-md text-xs hover:bg-amber-600 active:scale-[0.99] transition-all";
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelEdit() {
+      currentEditRowNumber = null;
+      document.getElementById('txForm').reset();
+      document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+      document.getElementById('editBadge').classList.add('hidden');
+      
+      const submitBtn = document.getElementById('btnSubmit');
+      submitBtn.innerText = "Simpan Transaksi + Foto";
+      submitBtn.className = "w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-md text-xs hover:bg-indigo-700 active:scale-[0.99] transition-all";
+      setJenis('Pengeluaran');
     }
 
     async function deleteTransaction(index) {
-      if (confirm("Apakah Anda yakin ingin menghapus data ini?")) { await executeDelete(allTransactions[index].rowNumber); }
-    }
-
-    async function executeDelete(rowNumber) {
-      const btn = document.getElementById('btnSubmit');
-      btn.disabled = true; btn.innerText = "Memproses...";
-      try {
-        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "delete", rowNumber: rowNumber }) });
-        loadData();
-      } catch (e) { alert("Koneksi gagal."); }
-      finally { btn.disabled = false; btn.innerText = "Simpan Transaksi + Foto"; }
+      if (confirm("Apakah Anda yakin ingin menghapus data ini?")) { 
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true; btn.innerText = "Menghapus...";
+        try {
+          await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: "delete", rowNumber: allTransactions[index].rowNumber }) });
+          loadData();
+        } catch (e) { alert("Gagal koneksi."); }
+        finally { btn.disabled = false; cancelEdit(); }
+      }
     }
 
     function renderFullMonthlyList() {
@@ -244,7 +270,7 @@
     function populateMonthFilter() {
       const select = document.getElementById('filterBulan');
       if (!select) return; select.innerHTML = "";
-      const uniqueMonths = [...new Set(allTransactions.map(t => t.tanggal.substring(0, 7)))].sort().reverse();
+      const uniqueMonths = [...new Set(allTransactions.map(t => t.substring(0, 7)))].sort().reverse();
       if(uniqueMonths.length === 0) uniqueMonths.push(new Date().toISOString().substring(0,7));
       uniqueMonths.forEach(m => { const p = m.split('-'); select.innerHTML += `<option value="${m}">${p[1]}/${p[0]}</option>`; });
     }
@@ -254,7 +280,7 @@
     document.getElementById('txForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const btn = document.getElementById('btnSubmit');
-      btn.disabled = true; btn.innerText = "Mengirim data & foto...";
+      btn.disabled = true; btn.innerText = "Memproses...";
       
       const payload = {
         jenis: currentJenis,
@@ -264,6 +290,7 @@
         metode: document.getElementById('metode').value,
         tanggal: document.getElementById('tanggal').value,
         catatan: document.getElementById('catatan').value,
+        editRowNumber: currentEditRowNumber,
         imageBlob: null,
         imageName: null
       };
@@ -289,14 +316,12 @@
         const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
         const data = await res.json();
         if(data.status === 'success') {
-          alert("Berhasil dicatat ke Google Sheets + Foto Struk!");
-          document.getElementById('txForm').reset();
-          document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
-          setJenis('Pengeluaran');
+          alert(payload.editRowNumber ? "Transaksi berhasil diperbarui!" : "Berhasil dicatat ke Google Sheets!");
+          cancelEdit();
           loadData();
         }
       } catch (err) { alert("Gagal mengirim data."); }
-      finally { btn.disabled = false; btn.innerText = "Simpan Transaksi + Foto"; }
+      finally { btn.disabled = false; }
     }
 
     function renderChart(chartData) {
