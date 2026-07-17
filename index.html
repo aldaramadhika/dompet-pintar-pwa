@@ -182,7 +182,25 @@
         console.error("Gagal sinkronisasi data:", error);
       }
     }
+// ... kode di atasnya (baris 183-184)
+      }
+    }
 
+    // TEMPEL KODENYA DI SINI:
+    function goToPage(pageId) {
+      document.getElementById('pageHome').classList.add('hidden');
+      document.getElementById('pageHistory').classList.add('hidden');
+      document.getElementById(pageId).classList.remove('hidden');
+      
+      if (pageId === 'pageHistory') {
+        populateMonthFilter();
+        renderFullMonthlyList();
+      }
+    }
+
+    // // Render 3 Item Terbaru di Halaman Utama (baris 186 bawaan kodemu)
+    function renderRecentTransactions() {
+// ... kode di bawahnya
     // Render 3 Item Terbaru di Halaman Utama (Lengkap dengan Tanggal & Dompet)
     function renderRecentTransactions() {
       const recentList = document.getElementById('recentList');
