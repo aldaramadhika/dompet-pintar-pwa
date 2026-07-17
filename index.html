@@ -197,7 +197,63 @@
         renderFullMonthlyList();
       }
     }
+// TEMPEL KODE INI DI BAWAH FUNGSI GOTOPAGE UTK MENGAKTIFKAN DROPDOWN & LIST BULANAN
+    function renderFullMonthlyList() {
+      const filterValue = document.getElementById('filterBulan').value;
+      const container = document.getElementById('monthlyFullList');
+      container.innerHTML = "";
+      
+      let income = 0; let expense = 0;
+      const filtered = allTransactions.filter(tx => tx.tanggal.substring(0, 7) === filterValue);
+      
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">Tidak ada transaksi bulan ini.</p>`;
+        document.getElementById('totalIn').innerText = "Rp 0";
+        document.getElementById('totalOut').innerText = "-Rp 0";
+        return;
+      }
+      
+      filtered.forEach(tx => {
+        const isKeluar = tx.jenis === "Pengeluaran";
+        const parts = tx.tanggal.split('-');
+        const formatTgl = `${parts[2]}/${parts[1]}`;
+        
+        if (isKeluar) expense += tx.nominal; else income += tx.nominal;
+        
+        container.innerHTML += `
+          <div class="bg-slate-50 rounded-2xl p-3 border border-slate-100 flex items-center justify-between gap-2">
+            <div>
+              <h4 class="text-xs font-bold text-slate-800">${tx.aktivitas}</h4>
+              <p class="text-[10px] text-slate-400 font-semibold mt-0.5">
+                ${formatTgl} • ${tx.kategori} • <span class="text-indigo-600">${tx.metode}</span>
+              </p>
+            </div>
+            <div class="text-right">
+              <span class="text-xs font-bold ${isKeluar ? 'text-rose-600' : 'text-emerald-600'}">
+                ${isKeluar ? '-' : '+'}Rp ${tx.nominal.toLocaleString('id-ID')}
+              </span>
+            </div>
+          </div>
+        `;
+      });
+      
+      document.getElementById('totalIn').innerText = "+Rp " + income.toLocaleString('id-ID');
+      document.getElementById('totalOut').innerText = "-Rp " + expense.toLocaleString('id-ID');
+    }
 
+    function populateMonthFilter() {
+      const select = document.getElementById('filterBulan');
+      if (!select) return;
+      select.innerHTML = "";
+      const uniqueMonths = [...new Set(allTransactions.map(t => t.tanggal.substring(0, 7)))].sort().reverse();
+      
+      if(uniqueMonths.length === 0) uniqueMonths.push(new Date().toISOString().substring(0,7));
+      
+      uniqueMonths.forEach(m => {
+        const p = m.split('-');
+        select.innerHTML += `<option value="${m}">${p[1]}/${p[0]}</option>`;
+      });
+    }
     // // Render 3 Item Terbaru di Halaman Utama (baris 186 bawaan kodemu)
     function renderRecentTransactions() {
 // ... kode di bawahnya
