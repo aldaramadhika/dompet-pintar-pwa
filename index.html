@@ -61,7 +61,6 @@
           <textarea id="catatan" rows="2" placeholder="Tulis detail catatan tambahan..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></textarea>
         </div>
 
-        <!-- INPUT FOTO BARU -->
         <div class="bg-indigo-50/50 p-3.5 rounded-2xl border border-dashed border-indigo-300">
           <label class="block text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">📸 Lampiran Foto Struk / Bon</label>
           <input type="file" id="fotoBon" accept="image/*" class="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[11px] file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer">
@@ -178,6 +177,7 @@
               <div>
                 <h4 class="text-xs font-bold text-slate-800">${tx.aktivitas}</h4>
                 <p class="text-[10px] text-slate-400 font-semibold mt-0.5">${formatTgl} • ${tx.kategori} • <span class="text-indigo-600">${tx.metode}</span></p>
+                ${tx.catatan ? `<p class="text-[10px] text-slate-400 font-medium italic mt-0.5">"${tx.catatan}"</p>` : ''}
               </div>
               <div class="text-right"><span class="text-xs font-bold ${isKeluar ? 'text-rose-600' : 'text-emerald-600'}">${isKeluar ? '-' : '+'}Rp ${tx.nominal.toLocaleString('id-ID')}</span></div>
             </div>
@@ -232,6 +232,7 @@
             <div>
               <h4 class="text-xs font-bold text-slate-800">${tx.aktivitas}</h4>
               <p class="text-[10px] text-slate-400 font-semibold mt-0.5">${parts[2]}/${parts[1]} • ${tx.kategori} • ${tx.metode}</p>
+              ${tx.catatan ? `<p class="text-[10px] text-slate-400 font-medium italic mt-0.5">"${tx.catatan}"</p>` : ''}
             </div>
             <div class="text-right"><span class="text-xs font-bold ${isKeluar ? 'text-rose-600' : 'text-emerald-600'}">${isKeluar ? '-' : '+'}Rp ${tx.nominal.toLocaleString('id-ID')}</span></div>
           </div>`;
